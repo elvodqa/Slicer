@@ -35,6 +35,11 @@ public class Game1 : Game
 
     protected override void Initialize()
     {
+        if (!System.IO.Directory.Exists("Rooms"))
+        {
+            System.IO.Directory.CreateDirectory("Rooms");
+        }
+
         _imGuiRenderer = new ImGuiRenderer(this);
         _imGuiRenderer.RebuildFontAtlas();
 
@@ -157,25 +162,22 @@ public class Game1 : Game
         {
             ImGui.SameLine();
             if (ImGui.BeginCombo("", Global.Room.Name))
-            {
-                // Get every room name from Rooms folder
-                string[] rooms = System.IO.Directory.GetFiles("Rooms", "*.json");
+            {   
+                string[] rooms = System.IO.Directory.GetFiles("Rooms", "*.room");
                 foreach (string room in rooms)
                 {
-                    string roomName = room.Replace("Rooms\\", "").Replace(".json", "");
+                    string roomName = room.Replace("Rooms/", "").Replace(".room", "");
                     if (ImGui.Selectable(roomName))
                     {
                         Global.Room = Room.Load(roomName);
                         _roomName = roomName;
                         _roomSize = new System.Numerics.Vector2(Global.Room.Size.X, Global.Room.Size.Y);
-                        _roomColor = new System.Numerics.Vector3(Global.Room.BackgroundColor.R, Global.Room.BackgroundColor.G, Global.Room.BackgroundColor.B);
+                        _roomColor = new System.Numerics.Vector3(Global.Room.BackgroundColor.R/255f, Global.Room.BackgroundColor.G/255f, Global.Room.BackgroundColor.B/255f);
                     }
                 }
                 ImGui.EndCombo();
             }
-
         }
-
         ImGui.End();
     }
 
@@ -218,9 +220,6 @@ public class Game1 : Game
                 Global.Room.Save();
             }
         }
-        ImGui.SameLine();
-        if (ImGui.Button("Load"))
-        { }
         ImGui.SameLine();
         if (ImGui.Button("New"))
         { 
