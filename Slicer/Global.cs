@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace Slicer
 {
-    internal static class Global
+    internal class Global
     {
         public static Room Room;
     }
