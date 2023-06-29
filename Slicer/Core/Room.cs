@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Microsoft.Xna.Framework;
+using Newtonsoft.Json;
 
 namespace Slicer.Core
 {
@@ -32,6 +33,22 @@ namespace Slicer.Core
             {
                 Actors.Remove(actor);
             }
+        }
+
+        public void Save()
+        {
+            string json = JsonConvert.SerializeObject(this, Formatting.Indented);
+            if (!System.IO.Directory.Exists("Rooms"))
+            {
+                System.IO.Directory.CreateDirectory("Rooms");
+            }
+            System.IO.File.WriteAllText(@"Rooms\" + Name + ".json", json);
+        }
+
+        public static Room Load(string name)
+        {
+            string json = System.IO.File.ReadAllText(@"Rooms\" + name + ".json");
+            return JsonConvert.DeserializeObject<Room>(json);
         }
     }
 }

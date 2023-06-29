@@ -2,6 +2,7 @@
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
+using Slicer.Core;
 using System;
 
 namespace Slicer;
@@ -12,6 +13,9 @@ public class Game1 : Game
     private SpriteBatch _spriteBatch;
     private ImGuiRenderer _imGuiRenderer;
     private bool IsEditing;
+    private System.Numerics.Vector2 _roomSize = new();
+    private System.Numerics.Vector3 _roomColor = new();
+    private string _roomName = "";
 
 
     public Game1()
@@ -33,6 +37,14 @@ public class Game1 : Game
     {
         _imGuiRenderer = new ImGuiRenderer(this);
         _imGuiRenderer.RebuildFontAtlas();
+
+        Global.Room = new();
+        Global.Room.Name = "Unnamed";
+        Global.Room.BackgroundColor = Color.Black;
+        Global.Room.Size = new Vector2(20, 10);
+
+        _roomSize = new System.Numerics.Vector2(Global.Room.Size.X, Global.Room.Size.Y);
+        _roomColor = new System.Numerics.Vector3(Global.Room.BackgroundColor.R, Global.Room.BackgroundColor.G, Global.Room.BackgroundColor.B);
 
         base.Initialize();
     }
@@ -67,7 +79,7 @@ public class Game1 : Game
 
     protected override void Draw(GameTime gameTime)
     {
-        GraphicsDevice.Clear(Color.Black);
+        GraphicsDevice.Clear(Global.Room.BackgroundColor);
 
         _imGuiRenderer.BeforeLayout(gameTime);
         DebugImGuiLayout();
@@ -144,20 +156,35 @@ public class Game1 : Game
         if (IsEditing)
         {
             ImGui.SameLine();
-            // TODO: COMBO BOX for room selector. Also a 'New' and 'Save' button for saving rooms.
+            if (ImGui.BeginCombo("", Global.Room.Name))
+            {
+                // Get every room name from Rooms folder
+                string[] rooms = System.IO.Directory.GetFiles("Rooms", "*.json");
+                foreach (string room in rooms)
+                {
+                    string roomName = room.Replace("Rooms\\", "").Replace(".json", "");
+                    if (ImGui.Selectable(roomName))
+                    {
+                        Global.Room = Room.Load(roomName);
+                        _roomName = roomName;
+                        _roomSize = new System.Numerics.Vector2(Global.Room.Size.X, Global.Room.Size.Y);
+                        _roomColor = new System.Numerics.Vector3(Global.Room.BackgroundColor.R, Global.Room.BackgroundColor.G, Global.Room.BackgroundColor.B);
+                    }
+                }
+                ImGui.EndCombo();
+            }
+
         }
 
         ImGui.End();
     }
 
-    private System.Numerics.Vector2 _roomSize = new();
-    private System.Numerics.Vector3 _roomColor = new();
     private void EditorImGuiLayout()
     {
         // Room Inspector
         ImGuiWindowFlags inspectorWindowFlags = ImGuiWindowFlags.NoTitleBar | ImGuiWindowFlags.NoResize | ImGuiWindowFlags.NoMove;
         ImGui.SetNextWindowPos(new(0, 35));
-        ImGui.SetNextWindowSize(new(300, Window.ClientBounds.Height - 35));
+        ImGui.SetNextWindowSize(new(300, Window.ClientBounds.Height - 70));
         ImGui.Begin("Inspector", inspectorWindowFlags);
         ImGui.InputFloat2("Size", ref _roomSize);
         if (Global.Room != null)
@@ -168,19 +195,68 @@ public class Game1 : Game
         ImGui.Separator();
         ImGui.ColorPicker3("Background \nColor", ref _roomColor);
         if (Global.Room != null)
-        {
-            Color col = new();
-            col.R = (byte)_roomColor.X;
-            col.G = (byte)_roomColor.Y;
-            col.B = (byte)_roomColor.Z;
-            Global.Room.BackgroundColor = col;
+        {    
+            Global.Room.BackgroundColor = new Color(_roomColor.X, _roomColor.Y, _roomColor.Z);
+            ImGui.Text($"Room Color: {Global.Room.BackgroundColor}");
         }
-
-
 
         ImGui.End();
 
+        ImGuiWindowFlags saveWindowFlags = ImGuiWindowFlags.NoTitleBar | ImGuiWindowFlags.NoResize | ImGuiWindowFlags.NoMove;
+        ImGui.SetNextWindowPos(new(0, Window.ClientBounds.Height - 35));
+        ImGui.SetNextWindowSize(new(300, 35));
+        ImGui.Begin("Save", saveWindowFlags);
+        if (ImGui.Button("Save"))
+        {
+            if (Global.Room.Name == "Unnamed" || Global.Room.Name == "None")
+            {
+                ImGui.OpenPopup("Save As");
 
+            }
+            else
+            {
+                Global.Room.Save();
+            }
+        }
+        ImGui.SameLine();
+        if (ImGui.Button("Load"))
+        { }
+        ImGui.SameLine();
+        if (ImGui.Button("New"))
+        { 
+            Global.Room = new();
+            Global.Room.Name = "Unnamed";
+            Global.Room.BackgroundColor = Color.Black;
+            Global.Room.Size = new Vector2(20, 10);
+        }
+        ImGui.SameLine();
+        if (ImGui.Button("Delete"))
+        { }
+
+        ImGui.SetNextWindowSize(new(300, 200));
+        if (ImGui.BeginPopupModal("Save As"))
+        {
+            ImGui.Text("Name of the map:");
+            ImGui.SameLine();
+            ImGui.InputText("##SaveAs", ref _roomName, 100);
+          
+            if (ImGui.Button("Save"))
+            {
+                Global.Room.Name = _roomName;
+                Global.Room.Save();
+                ImGui.CloseCurrentPopup();
+            }
+            
+            if (ImGui.Button("Cancel"))
+            {
+                ImGui.CloseCurrentPopup();
+            }
+            ImGui.EndPopup();
+        }
+
+        ImGui.End();
+
+       
     }
 }
 
