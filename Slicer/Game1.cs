@@ -16,7 +16,8 @@ public class Game1 : Game
     private System.Numerics.Vector2 _roomSize = new();
     private System.Numerics.Vector3 _roomColor = new();
     private string _roomName = "";
-
+    private Camera _camera;
+    private Texture2D _tilesetOutside;
 
     public Game1()
     {
@@ -51,6 +52,8 @@ public class Game1 : Game
         _roomSize = new System.Numerics.Vector2(Global.Room.Size.X, Global.Room.Size.Y);
         _roomColor = new System.Numerics.Vector3(Global.Room.BackgroundColor.R, Global.Room.BackgroundColor.G, Global.Room.BackgroundColor.B);
 
+        _camera = new(640, 480, new(100, 100));
+
         base.Initialize();
     }
 
@@ -58,7 +61,7 @@ public class Game1 : Game
     {
         _spriteBatch = new SpriteBatch(GraphicsDevice);
 
-        // TODO: use this.Content to load your game content here
+        _tilesetOutside = Content.Load<Texture2D>("Tilesets/outside");
     }
 
     protected override void Update(GameTime gameTime)
@@ -66,6 +69,8 @@ public class Game1 : Game
         var delta = (float)gameTime.ElapsedGameTime.TotalSeconds;
         Input.GetKeyboardState();
         Input.GetMouseState();
+
+        _camera.HandleInput();
 
         if (Input.IsKeyPressed(Keys.F1, true))
         {
@@ -85,6 +90,10 @@ public class Game1 : Game
     protected override void Draw(GameTime gameTime)
     {
         GraphicsDevice.Clear(Global.Room.BackgroundColor);
+        _spriteBatch.Begin(SpriteSortMode.Deferred, null, null, null, null, null, _camera.TranslationMatrix);
+        _spriteBatch.Draw(_tilesetOutside, new Rectangle(0, 0, 300, 300), Color.White);
+        _spriteBatch.End();
+
 
         _imGuiRenderer.BeforeLayout(gameTime);
         DebugImGuiLayout();
