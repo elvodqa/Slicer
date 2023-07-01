@@ -166,7 +166,7 @@ public class Game1 : Game
                 string[] rooms = System.IO.Directory.GetFiles("Rooms", "*.room");
                 foreach (string room in rooms)
                 {
-                    string roomName = room.Replace("Rooms/", "").Replace(".room", "");
+                    string roomName = room.Replace("Rooms/", "").Replace("Rooms\\", "").Replace(".room", "");
                     if (ImGui.Selectable(roomName))
                     {
                         Global.Room = Room.Load(roomName);
