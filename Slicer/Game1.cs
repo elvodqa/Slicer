@@ -16,7 +16,8 @@ public class Game1 : Game
     private System.Numerics.Vector2 _roomSize = new();
     private System.Numerics.Vector3 _roomColor = new();
     private string _roomName = "";
-    private Camera _camera;
+    private Camera _editorCamera;
+    private Camera _gameCamera;
     private Texture2D _tilesetOutside;
 
     public Game1()
@@ -52,7 +53,9 @@ public class Game1 : Game
         _roomSize = new System.Numerics.Vector2(Global.Room.Size.X, Global.Room.Size.Y);
         _roomColor = new System.Numerics.Vector3(Global.Room.BackgroundColor.R, Global.Room.BackgroundColor.G, Global.Room.BackgroundColor.B);
 
-        _camera = new(640, 480, new(100, 100));
+        _editorCamera = new(Window.ClientBounds.Width, Window.ClientBounds.Height, new(100, 100));
+        _gameCamera = new(Window.ClientBounds.Width, Window.ClientBounds.Height, new(100, 100));
+        Global.Camera = _gameCamera;
 
         base.Initialize();
     }
@@ -70,7 +73,35 @@ public class Game1 : Game
         Input.GetKeyboardState();
         Input.GetMouseState();
 
-        _camera.HandleInput();
+        if (ImGui.IsItemFocused() || ImGui.IsAnyItemActive() || ImGui.IsAnyItemFocused())
+        {
+            
+        } else
+        {
+            if (!IsEditing)
+            {
+                _gameCamera.HandleInput();
+            }
+            else
+            {
+                _editorCamera.HandleInput();
+                if (Input.IsScrolled(Orientation.Up))
+                {
+                    _editorCamera.AdjustZoom(0.1f);
+                    _editorCamera.ViewportWidth = Window.ClientBounds.Width;
+                    _editorCamera.ViewportHeight = Window.ClientBounds.Height;
+                }
+                if (Input.IsScrolled(Orientation.Down))
+                {
+                    _editorCamera.AdjustZoom(-0.1f);
+                    _editorCamera.ViewportWidth = Window.ClientBounds.Width;
+                    _editorCamera.ViewportHeight = Window.ClientBounds.Height;
+                }
+            }
+            
+            
+        }
+        
 
         if (Input.IsKeyPressed(Keys.F1, true))
         {
@@ -90,7 +121,7 @@ public class Game1 : Game
     protected override void Draw(GameTime gameTime)
     {
         GraphicsDevice.Clear(Global.Room.BackgroundColor);
-        _spriteBatch.Begin(SpriteSortMode.Deferred, null, null, null, null, null, _camera.TranslationMatrix);
+        _spriteBatch.Begin(SpriteSortMode.Deferred, null, SamplerState.PointClamp, null, null, null, Global.Camera.TranslationMatrix);
         _spriteBatch.Draw(_tilesetOutside, new Rectangle(0, 0, 300, 300), Color.White);
         _spriteBatch.End();
 
@@ -114,14 +145,15 @@ public class Game1 : Game
     private void SwitchToTesting()
     {
         IsEditing = false;
+        
+        Global.Camera = _gameCamera;
     }
 
     private void SwitchToEditor()
     {
         IsEditing = true;
-        // Stop game update
-
-
+        _editorCamera.Position = new(0, 0);
+        Global.Camera = _editorCamera;
     }
 
 
@@ -240,6 +272,8 @@ public class Game1 : Game
         ImGui.SameLine();
         if (ImGui.Button("Delete"))
         { }
+        ImGui.SameLine();
+        ImGui.Text($"x{Global.Camera.Zoom}");
 
         ImGui.SetNextWindowSize(new(300, 200));
         if (ImGui.BeginPopupModal("Save As"))

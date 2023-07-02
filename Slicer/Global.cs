@@ -10,5 +10,6 @@ namespace Slicer
     internal class Global
     {
         public static Room Room;
+        public static Camera Camera;
     }
 }
