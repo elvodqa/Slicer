@@ -4,6 +4,7 @@ using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using Slicer.Core;
+using Slicer.Core.Solids;
 using System;
 using System.IO;
 
@@ -118,28 +119,37 @@ public class Game1 : Game
                     cameraMovement.Y = 1;
                 }
 
-                // to match the thumbstick behavior, we need to normalize non-zero vectors in case the user
-                // is pressing a diagonal direction.
                 if (cameraMovement != Vector2.Zero)
                 {
                     cameraMovement.Normalize();
                 }
 
-                cameraMovement *= 10f;
+                if (Input.IsKeyPressed(Keys.LeftShift, false))
+                {
+                    cameraMovement *= 20f;
+                } else
+                {
+                    cameraMovement *= 10f;
+                }
+               
                 Global.Camera.MoveCamera(cameraMovement);
 
                 if (Input.IsScrolled(Orientation.Up))
                 {
-                    _editorCamera.AdjustZoom(0.1f);
+                    _editorCamera.AdjustZoom(0.05f);
                            
                 }
                 if (Input.IsScrolled(Orientation.Down))
                 {
-                    _editorCamera.AdjustZoom(-0.1f);
+                    _editorCamera.AdjustZoom(-0.05f);
   
                 }
                 if (Input.IsKeyPressed(Keys.G, true)){
                     _drawGrid = !_drawGrid;
+                }
+                if (Input.IsKeyPressed(Keys.LeftControl, false) && Input.IsKeyPressed(Keys.S, true))
+                {
+
                 }
 
                 var gridSize = 16 * _viewScale;
@@ -251,7 +261,9 @@ public class Game1 : Game
     {
         IsEditing = true;
         _editorCamera.Position = new(0, 0);
+        _editorCamera.Zoom = 0.4f;
         Global.Camera = _editorCamera;
+        
     }
 
 
@@ -320,7 +332,7 @@ public class Game1 : Game
         }
         ImGui.End();
     }
-
+    private Tileset selectedTileset;
     private void EditorImGuiLayout()
     {
         // Room Inspector
@@ -341,7 +353,20 @@ public class Game1 : Game
             Global.Room.BackgroundColor = new Color(_roomColor.X, _roomColor.Y, _roomColor.Z);
             ImGui.Text($"Room Color: {Global.Room.BackgroundColor}");
         }
-
+        ImGui.Separator();
+        // Selection of tileset
+        ImGui.BeginCombo("Tileset", selectedTileset.ToString());
+        var count = Enum.GetNames(typeof(Tileset)).Length;
+        for (int i = 0; i < count; i++)
+        {
+            var tileset = (Tileset)i;
+            if (ImGui.Selectable(tileset.ToString()))
+            {
+                selectedTileset = tileset;
+            }
+        }
+        ImGui.EndCombo();
+      
         ImGui.End();
 
         ImGuiWindowFlags saveWindowFlags = ImGuiWindowFlags.NoTitleBar | ImGuiWindowFlags.NoResize | ImGuiWindowFlags.NoMove;

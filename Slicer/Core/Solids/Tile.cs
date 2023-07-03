@@ -8,6 +8,12 @@ using System.Threading.Tasks;
 
 namespace Slicer.Core.Solids
 {
+    internal enum Tileset
+    {
+        Outside,
+        Inside,
+        Castle,
+    }
     internal class Tile : Solid
     {
         public Texture2D Texture { get; set; }
