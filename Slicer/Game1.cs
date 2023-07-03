@@ -1,9 +1,11 @@
-﻿using ImGuiNET;
+﻿using FontStashSharp;
+using ImGuiNET;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using Slicer.Core;
 using System;
+using System.IO;
 
 namespace Slicer;
 
@@ -19,6 +21,10 @@ public class Game1 : Game
     private Camera _editorCamera;
     private Camera _gameCamera;
     private Texture2D _tilesetOutside;
+    private bool _drawGrid = true;
+    private float _viewScale = 8;
+    private FontSystem _fontSystem;
+    private Rectangle _selectionRect;
 
     public Game1()
     {
@@ -32,7 +38,10 @@ public class Game1 : Game
         _graphics.PreferredBackBufferWidth = 1080;
         _graphics.PreferredBackBufferHeight = 680;
         _graphics.ApplyChanges();
-        
+
+        Window.ClientSizeChanged += OnWindowResize;
+
+
     }
 
     protected override void Initialize()
@@ -55,7 +64,11 @@ public class Game1 : Game
 
         _editorCamera = new(Window.ClientBounds.Width, Window.ClientBounds.Height, new(100, 100));
         _gameCamera = new(Window.ClientBounds.Width, Window.ClientBounds.Height, new(100, 100));
+
         Global.Camera = _gameCamera;
+
+        _fontSystem = new();
+        _fontSystem.AddFont(File.ReadAllBytes(@"Content/Fonts/Silkscreen/slkscr.ttf"));
 
         base.Initialize();
     }
@@ -67,6 +80,7 @@ public class Game1 : Game
         _tilesetOutside = Content.Load<Texture2D>("Tilesets/outside");
     }
 
+    private Vector2 _previousTileCursorPos;
     protected override void Update(GameTime gameTime)
     {
         var delta = (float)gameTime.ElapsedGameTime.TotalSeconds;
@@ -76,7 +90,8 @@ public class Game1 : Game
         if (ImGui.IsItemFocused() || ImGui.IsAnyItemActive() || ImGui.IsAnyItemFocused())
         {
             
-        } else
+        }
+        else
         {
             if (!IsEditing)
             {
@@ -84,22 +99,64 @@ public class Game1 : Game
             }
             else
             {
-                _editorCamera.HandleInput();
+                Vector2 cameraMovement = Vector2.Zero;
+
+                if (Input.IsKeyPressed(Microsoft.Xna.Framework.Input.Keys.A, false))
+                {
+                    cameraMovement.X = -1;
+                }
+                else if (Input.IsKeyPressed(Microsoft.Xna.Framework.Input.Keys.D, false))
+                {
+                    cameraMovement.X = 1;
+                }
+                if (Input.IsKeyPressed(Microsoft.Xna.Framework.Input.Keys.W, false))
+                {
+                    cameraMovement.Y = -1;
+                }
+                else if (Input.IsKeyPressed(Microsoft.Xna.Framework.Input.Keys.S, false))
+                {
+                    cameraMovement.Y = 1;
+                }
+
+                // to match the thumbstick behavior, we need to normalize non-zero vectors in case the user
+                // is pressing a diagonal direction.
+                if (cameraMovement != Vector2.Zero)
+                {
+                    cameraMovement.Normalize();
+                }
+
+                cameraMovement *= 10f;
+                Global.Camera.MoveCamera(cameraMovement);
+
                 if (Input.IsScrolled(Orientation.Up))
                 {
                     _editorCamera.AdjustZoom(0.1f);
-                    _editorCamera.ViewportWidth = Window.ClientBounds.Width;
-                    _editorCamera.ViewportHeight = Window.ClientBounds.Height;
+                           
                 }
                 if (Input.IsScrolled(Orientation.Down))
                 {
                     _editorCamera.AdjustZoom(-0.1f);
-                    _editorCamera.ViewportWidth = Window.ClientBounds.Width;
-                    _editorCamera.ViewportHeight = Window.ClientBounds.Height;
+  
                 }
-            }
-            
-            
+                if (Input.IsKeyPressed(Keys.G, true)){
+                    _drawGrid = !_drawGrid;
+                }
+
+                var gridSize = 16 * _viewScale;
+                var mousePos = Global.Camera.ScreenToWorld(new(Mouse.GetState().Position.X, Mouse.GetState().Position.Y));
+                int newX = (int)(mousePos.X - mousePos.X % gridSize);
+                int newY = (int)(mousePos.Y - mousePos.Y % gridSize);
+
+             
+                if (mousePos.X < 0 || mousePos.Y < 0 || mousePos.X > Global.Room.Size.X * gridSize || mousePos.Y > Global.Room.Size.Y * gridSize)
+                {
+                    _selectionRect = new Rectangle(0, 0, 0, 0);
+                }
+                else
+                {
+                    _selectionRect = new Rectangle(newX, newY, (int)gridSize, (int)gridSize);
+                }            
+            }   
         }
         
 
@@ -121,10 +178,44 @@ public class Game1 : Game
     protected override void Draw(GameTime gameTime)
     {
         GraphicsDevice.Clear(Global.Room.BackgroundColor);
-        _spriteBatch.Begin(SpriteSortMode.Deferred, null, SamplerState.PointClamp, null, null, null, Global.Camera.TranslationMatrix);
-        _spriteBatch.Draw(_tilesetOutside, new Rectangle(0, 0, 300, 300), Color.White);
-        _spriteBatch.End();
 
+        if (!IsEditing)
+        {
+
+        }
+        if (IsEditing)
+        {
+            
+            _spriteBatch.Begin(SpriteSortMode.Deferred, null, SamplerState.PointClamp, null, null, null, Global.Camera.TranslationMatrix);
+            _spriteBatch.Draw(_tilesetOutside, new Rectangle(0, 0, 256 * (int)_viewScale, 256 * (int)_viewScale), Color.White);
+
+            Primitives.DrawLine(_spriteBatch, new(0, 0), new(0, Global.Room.Size.Y * 16 * _viewScale), Color.DarkRed, 4);
+            Primitives.DrawLine(_spriteBatch, new(0, 0), new(Global.Room.Size.X * 16 * _viewScale, 0), Color.DarkRed, 4);
+            Primitives.DrawLine(_spriteBatch, new(0, Global.Room.Size.Y * 16 * _viewScale), new(Global.Room.Size.X * 16 * _viewScale, Global.Room.Size.Y * 16 * _viewScale), Color.DarkRed, 4);
+            Primitives.DrawLine(_spriteBatch, new(Global.Room.Size.X * 16 * _viewScale, 0), new(Global.Room.Size.X * 16 * _viewScale, Global.Room.Size.Y * 16 * _viewScale), Color.DarkRed, 4);
+
+            if (_drawGrid)
+            {
+               
+                for (int i = 1; i < Global.Room.Size.X; i++)
+                {
+                    Primitives.DrawLine(_spriteBatch, new(i * 16 * _viewScale, 0), new(i * 16 * _viewScale, Global.Room.Size.Y * 16 * _viewScale), Color.White, 4);
+                }
+                for (int i = 1; i < Global.Room.Size.Y; i++)
+                {
+                    Primitives.DrawLine(_spriteBatch, new(0, i * 16 * _viewScale), new(Global.Room.Size.X * 16 * _viewScale, i * 16 * _viewScale), Color.White, 4);
+                }
+
+            }
+
+            Primitives.DrawRect(_spriteBatch, _selectionRect, Color.Blue, 10);
+
+            SpriteFontBase font18 = _fontSystem.GetFont(55);
+            _spriteBatch.DrawString(font18, Global.Room.Name, new Vector2(0, -50), Color.White);
+
+            _spriteBatch.End();
+         
+        }
 
         _imGuiRenderer.BeforeLayout(gameTime);
         DebugImGuiLayout();
@@ -134,12 +225,19 @@ public class Game1 : Game
         }
         if (IsEditing)
         {
+
             EditorImGuiLayout();
         }
         
         _imGuiRenderer.AfterLayout();
 
         base.Draw(gameTime);
+    }
+
+    private void OnWindowResize(object sender, EventArgs e)
+    {
+        _editorCamera.ViewportWidth = Window.ClientBounds.Width;
+        _editorCamera.ViewportHeight = Window.ClientBounds.Height;
     }
 
     private void SwitchToTesting()
@@ -155,6 +253,7 @@ public class Game1 : Game
         _editorCamera.Position = new(0, 0);
         Global.Camera = _editorCamera;
     }
+
 
 
     private void DebugImGuiLayout()
@@ -273,7 +372,9 @@ public class Game1 : Game
         if (ImGui.Button("Delete"))
         { }
         ImGui.SameLine();
-        ImGui.Text($"x{Global.Camera.Zoom}");
+        ImGui.Text($"x{Global.Camera.Zoom:0.0##}");
+        ImGui.SameLine();
+        ImGui.Checkbox("Grid", ref _drawGrid);
 
         ImGui.SetNextWindowSize(new(300, 200));
         if (ImGui.BeginPopupModal("Save As"))

@@ -12,6 +12,6 @@ namespace Slicer.Core.Solids
     {
         public Texture2D Texture { get; set; }
         public string TilesetName;
-        public Vector2 TileIndex;
+        public Vector2 Tilepos;
     }
 }
