@@ -22,7 +22,7 @@ public class Game1 : Game
     private Camera _editorCamera;
     private Camera _gameCamera;
     private Texture2D _tilesetOutside;
-    private bool _drawGrid = true;
+    private bool _drawGrid = false;
     private float _viewScale = 8;
     private FontSystem _fontSystem;
     private Rectangle _selectionRect;
@@ -58,7 +58,7 @@ public class Game1 : Game
         Global.Room = new();
         Global.Room.Name = "Unnamed";
         Global.Room.BackgroundColor = Color.Black;
-        Global.Room.Size = new Vector2(20, 10);
+        Global.Room.Size = new Vector2(40, 20);
 
         _roomSize = new System.Numerics.Vector2(Global.Room.Size.X, Global.Room.Size.Y);
         _roomColor = new System.Numerics.Vector3(Global.Room.BackgroundColor.R, Global.Room.BackgroundColor.G, Global.Room.BackgroundColor.B);
@@ -199,10 +199,12 @@ public class Game1 : Game
             _spriteBatch.Begin(SpriteSortMode.Deferred, null, SamplerState.PointClamp, null, null, null, Global.Camera.TranslationMatrix);
             _spriteBatch.Draw(_tilesetOutside, new Rectangle(0, 0, 256 * (int)_viewScale, 256 * (int)_viewScale), Color.White);
 
-            Primitives.DrawLine(_spriteBatch, new(0, 0), new(0, Global.Room.Size.Y * 16 * _viewScale), Color.DarkRed, 4);
-            Primitives.DrawLine(_spriteBatch, new(0, 0), new(Global.Room.Size.X * 16 * _viewScale, 0), Color.DarkRed, 4);
-            Primitives.DrawLine(_spriteBatch, new(0, Global.Room.Size.Y * 16 * _viewScale), new(Global.Room.Size.X * 16 * _viewScale, Global.Room.Size.Y * 16 * _viewScale), Color.DarkRed, 4);
-            Primitives.DrawLine(_spriteBatch, new(Global.Room.Size.X * 16 * _viewScale, 0), new(Global.Room.Size.X * 16 * _viewScale, Global.Room.Size.Y * 16 * _viewScale), Color.DarkRed, 4);
+            //Primitives.DrawLine(_spriteBatch, new(0, 0), new(0, Global.Room.Size.Y * 16 * _viewScale), Color.DarkRed, 4);
+            //Primitives.DrawLine(_spriteBatch, new(0, 0), new(Global.Room.Size.X * 16 * _viewScale, 0), Color.DarkRed, 4);
+            //Primitives.DrawLine(_spriteBatch, new(0, Global.Room.Size.Y * 16 * _viewScale), new(Global.Room.Size.X * 16 * _viewScale, Global.Room.Size.Y * 16 * _viewScale), Color.DarkRed, 4);
+            //Primitives.DrawLine(_spriteBatch, new(Global.Room.Size.X * 16 * _viewScale, 0), new(Global.Room.Size.X * 16 * _viewScale, Global.Room.Size.Y * 16 * _viewScale), Color.DarkRed, 4);
+
+            Primitives.DrawRect(_spriteBatch, new Rectangle(0, 0, (int)(Global.Room.Size.X*16*_viewScale), (int)(Global.Room.Size.Y * 16 * _viewScale)), Color.DarkRed, 10);
 
             if (_drawGrid)
             {
@@ -260,8 +262,8 @@ public class Game1 : Game
     private void SwitchToEditor()
     {
         IsEditing = true;
-        _editorCamera.Position = new(0, 0);
-        _editorCamera.Zoom = 0.4f;
+        _editorCamera.Position = new(600, 300);
+        _editorCamera.Zoom = 0.15f;
         Global.Camera = _editorCamera;
         
     }
@@ -391,7 +393,7 @@ public class Game1 : Game
             Global.Room = new();
             Global.Room.Name = "Unnamed";
             Global.Room.BackgroundColor = Color.Black;
-            Global.Room.Size = new Vector2(20, 10);
+            Global.Room.Size = new Vector2(40, 20);
         }
         ImGui.SameLine();
         if (ImGui.Button("Delete"))
